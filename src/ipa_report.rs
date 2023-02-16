@@ -88,10 +88,10 @@ impl SweepReport {
                 for tmp_test in &mut tmp_reports {
 
                     if test.Tags.len() == 0 {
-                        panic!("No tags found on cable, Check Report")
+                        panic!("No tags found on cable, Check Report.")
                     }
                     if test.Tags.len() > 1 {
-                        panic!("Too many tags found on cable, Check Report")
+                        panic!("Too many tags found on cable, Check Report.")
                     }
 
                     if test.Tags.get(0).unwrap().Tag == tmp_test.tag {
