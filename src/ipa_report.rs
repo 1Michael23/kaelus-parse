@@ -5,6 +5,8 @@ use std::{fs, env};
 use crate::raw_ipa_report;
 use chrono::{DateTime, FixedOffset};
 
+use owo_colors::OwoColorize;
+
 fn read_csv_marker_position(path: String) -> f64 {
 
     let args: Vec<String> = env::args().collect();
@@ -84,6 +86,14 @@ impl SweepReport {
                     };
 
                 for tmp_test in &mut tmp_reports {
+
+                    if test.Tags.len() == 0 {
+                        panic!("No tags found on cable, Check Report")
+                    }
+                    if test.Tags.len() > 1 {
+                        panic!("Too many tags found on cable, Check Report")
+                    }
+
                     if test.Tags.get(0).unwrap().Tag == tmp_test.tag {
                         duplicate_tag = true;
 
