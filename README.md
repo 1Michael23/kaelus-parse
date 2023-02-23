@@ -1,6 +1,6 @@
 # Kaelus-Parser
 
-A CLI utility to read exports from Kaelus IPA cable sweep testers
+A CLI utility to read exports from Kaelus IVA cable sweep testers
 
 ## Limitations
 
