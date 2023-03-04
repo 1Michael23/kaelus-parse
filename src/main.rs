@@ -33,12 +33,21 @@ fn main() {
 
     println!("\n{} Model: {}, SN: {}, Cal Date: {}\n", "Device:".green().underline(), formatted_report.devices.get(0).unwrap().model.yellow(), formatted_report.devices.get(0).unwrap().serial_number.yellow(), formatted_report.devices.get(0).unwrap().calibration_date.to_string().yellow());
 
-    formatted_report.reports.sort_by(|a, b| a.tag.cmp(&b.tag));
+    test_summary(formatted_report)
 
-    for input in formatted_report.reports{
-        println!("{}: {: <15} {}: {: <6} {}: {: <6} {}: {: <6}",
+    
+}
+
+fn test_summary(mut input: ipa_report::SweepReport){
+    input.reports.sort_by(|a, b| a.tag.cmp(&b.tag));
+
+    for input in input.reports{
+
+        println!("{}: {: <15} {}: {: <15} {}: {: <6} {}: {: <6} {}: {: <6}",
         "Tag".green(),
         input.tag,
+        "T+".red(),
+        input.time_finished.unwrap(),
         "Length".green(),
         round::half_away_from_zero(input.dtf_marker.unwrap(), 2),
         "VSWR".green(),

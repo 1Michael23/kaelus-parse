@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
-use std::{fs, env, cmp::Ordering};
+use std::{fs, env, cmp::Ordering, str::FromStr, string};
 
 use crate::raw_ipa_report;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, Local};
 
 use owo_colors::OwoColorize;
 
@@ -39,7 +39,7 @@ impl SweepReport {
                 tmp_devices.push(tmp_device);
             }
 
-        let mut tmp_reports: Vec<Report> = Vec::new();
+            let mut tmp_reports: Vec<Report> = Vec::new();
 
             for test in input.Reports.Report.get(0).unwrap().Items.Test.clone() {
                 
@@ -97,6 +97,12 @@ impl SweepReport {
                     if test.Tags.get(0).unwrap().Tag == tmp_test.tag {
                         duplicate_tag = true;
 
+                        //framework for timing data, need to fix sweep tester first, garbage data
+
+                        // let caldate: chrono::DateTime<FixedOffset> = tmp_devices.get(0).unwrap().calibration_date;
+                        // let testdate: Vec<&str> = test.Time.split(' ').collect();
+                        // println!("{} : {}", test.Time, caldate);
+                        // tmp_test.time_finished = Some(chrono::NaiveTime::from_str(testdate.get(1).unwrap()).unwrap() - caldate.time());
                         
                         for raw_state in input.States.State.clone() {
                             if raw_state.ID == test.StateID{
@@ -132,7 +138,8 @@ impl SweepReport {
                             rl_state: None, 
                             dtf_marker: Some(read_csv_marker_position(associated_csv_path.unwrap())),
                             dtf_result: Some(tmp_result),
-                            rl_result: None
+                            rl_result: None,
+                            time_finished: None
                             };
 
                             tmp_reports.push(tmp_report)
@@ -145,9 +152,10 @@ impl SweepReport {
                             rl_state: Some(RlState::from_raw(associated_state.unwrap())), 
                             dtf_marker: None,
                             dtf_result: None,
-                            rl_result: Some(tmp_result)};
+                            rl_result: Some(tmp_result),
+                            time_finished: None
+                        };
                             
-
                             tmp_reports.push(tmp_report)
                     }     
                 }
@@ -184,7 +192,8 @@ pub struct SweepReport {
         pub rl_state: Option<RlState>,
         pub dtf_marker: Option<f64>, 
         pub dtf_result: Option<TestResult>,
-        pub rl_result: Option<TestResult>
+        pub rl_result: Option<TestResult>,
+        pub time_finished: Option<chrono::Duration>
     }
 
         impl DtfState {
