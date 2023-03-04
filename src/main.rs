@@ -1,4 +1,7 @@
-use std::{fs, env::args};
+use std::{fs, env::args, ascii};
+
+use owo_colors::{self, OwoColorize};
+use math::round;
 
 mod ipa_report;
 mod raw_ipa_report;
@@ -26,12 +29,22 @@ fn main() {
 
     let raw_report = raw_ipa_report::raw_report_from_str(cleaned_string).unwrap();
 
-    let formatted_report = ipa_report::SweepReport::from_raw_ipa_report(raw_report.clone());
+    let mut formatted_report = ipa_report::SweepReport::from_raw_ipa_report(raw_report.clone());
 
+    println!("\n{} Model: {}, SN: {}, Cal Date: {}\n", "Device:".green().underline(), formatted_report.devices.get(0).unwrap().model.yellow(), formatted_report.devices.get(0).unwrap().serial_number.yellow(), formatted_report.devices.get(0).unwrap().calibration_date.to_string().yellow());
 
-    for cable in formatted_report.reports {
-        println!("Tag: {: <15} Length: {: <25} VSWR: {: <25} RL: {: <25}", cable.tag, cable.dtf_marker.unwrap(), cable.dtf_result.unwrap().max.1, cable.rl_result.unwrap().max.1)
+    formatted_report.reports.sort_by(|a, b| a.tag.cmp(&b.tag));
+
+    for input in formatted_report.reports{
+        println!("{}: {: <15} {}: {: <6} {}: {: <6} {}: {: <6}",
+        "Tag".green(),
+        input.tag,
+        "Length".green(),
+        round::half_away_from_zero(input.dtf_marker.unwrap(), 2),
+        "VSWR".green(),
+        round::half_away_from_zero(input.dtf_result.unwrap().max.1, 2),
+        "RL".green(),
+        round::half_away_from_zero(input.rl_result.unwrap().max.1, 2),
+        );
     }
-
 }
-
