@@ -1,11 +1,9 @@
 #![allow(non_snake_case)]
 
-use std::{fs, env, cmp::Ordering, str::FromStr, string};
+use std::{fs, env};
 
 use crate::raw_ipa_report;
-use chrono::{DateTime, FixedOffset, Local};
-
-use owo_colors::OwoColorize;
+use chrono::{DateTime, FixedOffset};
 
 fn read_csv_marker_position(path: String) -> f64 {
 
