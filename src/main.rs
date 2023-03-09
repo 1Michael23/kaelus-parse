@@ -1,11 +1,10 @@
-use std::{fs, env::args};
+use std::{fs, env::args, time};
 
-use owo_colors::{self, OwoColorize};
 use math::round;
 
 mod ipa_report;
 mod raw_ipa_report;
-//use owo_colors::OwoColorize;
+use owo_colors::OwoColorize;
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -13,12 +12,20 @@ fn main() {
     if args.len() != 2 {
         println!("Usage: ./testparser <file>");
     }
+
+    let start = time::Instant::now();
+
+    print!("\nStart:({})", format!("{}ms", start.elapsed().as_millis()).red());
  
     let data = fs::read_to_string(args.get(1).unwrap()).unwrap();  
-
+    
     let raw_report = raw_ipa_report::raw_report_from_str(remove_non_ascii(data)).unwrap();
 
+    print!(", Parsed:({})", format!("{}ms", start.elapsed().as_millis()).red());
+
     let formatted_report = ipa_report::SweepReport::from_raw_ipa_report(raw_report.clone());
+
+    print!(", Processed:({})\n", format!("{}ms", start.elapsed().as_millis()).red());
 
     println!("\n{} Model: {}, SN: {}, Cal Date: {}\n", "Device:".green().underline(), formatted_report.devices.get(0).unwrap().model.yellow(), formatted_report.devices.get(0).unwrap().serial_number.yellow(), formatted_report.devices.get(0).unwrap().calibration_date.to_string().yellow());
 
@@ -26,8 +33,8 @@ fn main() {
 
 }
 
-fn test_summary(input: ipa_report::SweepReport){
-    //input.reports.sort_by(|a, b| a.tag.cmp(&b.tag));
+fn test_summary(mut input: ipa_report::SweepReport){
+    input.reports.sort_by(|a, b| a.tag.cmp(&b.tag));
 
     for input in input.reports{
 
