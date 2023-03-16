@@ -1,23 +1,30 @@
-use std::{fs, env::args, time};
+use std::{fs, time};
 
 use math::round;
+use owo_colors::OwoColorize;
+use argh::FromArgs;
+
 
 mod ipa_report;
 mod raw_ipa_report;
-use owo_colors::OwoColorize;
+
+#[derive(FromArgs)]
+///Parser for Kaelus Sweep Tester Reports.
+struct Arguments {
+     ///path of Report.xml
+    #[argh(positional)]
+    path: String,
+}
 
 fn main() {
-    let args: Vec<String> = args().collect();
 
-    if args.len() != 2 {
-        println!("Usage: ./testparser <file>");
-    }
+    let args: Arguments = argh::from_env();
 
     let start = time::Instant::now();
 
     print!("\nStart:({})", format!("{}ms", start.elapsed().as_millis()).red());
  
-    let data = fs::read_to_string(args.get(1).unwrap()).unwrap();  
+    let data = fs::read_to_string(args.path).unwrap();  
     
     let raw_report = raw_ipa_report::raw_report_from_str(remove_non_ascii(data)).unwrap();
 
