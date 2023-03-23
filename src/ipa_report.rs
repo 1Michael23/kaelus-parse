@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
-use std::{fs, env};
+use std::{fs, env, str::FromStr};
 
 use crate::raw_ipa_report;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, Local, prelude::*, naive::MIN_DATETIME};
 
 fn read_csv_marker_position(path: String) -> f64 {
 
@@ -80,7 +80,9 @@ impl SweepReport {
                         min: (min.get(0).unwrap().to_string().parse().unwrap(), min.get(1).unwrap().to_string().parse().unwrap()), 
                         avg: test.Results.TestResult.Average.parse().unwrap(), 
                         ripple: test.Results.TestResult.Ripple.parse().unwrap(), 
-                        pass: test.Results.TestResult.Pass.parse().unwrap() 
+                        pass: test.Results.TestResult.Pass.parse().unwrap(),
+                        calibrated: test.Calibrated.parse().unwrap(),
+                        time: Utc.datetime_from_str(&test.Time, "%Y-%m-%d %H:%M").expect("Invalid time format").naive_local(),
                     };
 
                 for tmp_test in &mut tmp_reports {
@@ -136,8 +138,7 @@ impl SweepReport {
                             rl_state: None, 
                             dtf_marker: Some(read_csv_marker_position(associated_csv_path.unwrap())),
                             dtf_result: Some(tmp_result),
-                            rl_result: None,
-                            time_finished: None
+                            rl_result: None
                             };
 
                             tmp_reports.push(tmp_report)
@@ -150,8 +151,7 @@ impl SweepReport {
                             rl_state: Some(RlState::from_raw(associated_state.unwrap())), 
                             dtf_marker: None,
                             dtf_result: None,
-                            rl_result: Some(tmp_result),
-                            time_finished: None
+                            rl_result: Some(tmp_result)
                         };
                             
                             tmp_reports.push(tmp_report)
@@ -191,7 +191,6 @@ pub struct SweepReport {
         pub dtf_marker: Option<f64>, 
         pub dtf_result: Option<TestResult>,
         pub rl_result: Option<TestResult>,
-        pub time_finished: Option<chrono::Duration>
     }
 
         impl DtfState {
@@ -281,4 +280,6 @@ pub struct SweepReport {
             pub avg: f64,
             pub ripple: f64,
             pub pass: bool,
+            pub calibrated: chrono::NaiveTime,
+            pub time: chrono::NaiveDateTime
         }

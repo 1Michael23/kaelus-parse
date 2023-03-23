@@ -19,6 +19,7 @@ pub struct Bundle {
         pub Device: Vec<Device>,
     }
 
+
         #[derive(Debug, Serialize, Deserialize, Clone)]
         pub struct Device {
             pub SerialNumber: String,
@@ -100,8 +101,6 @@ pub struct Bundle {
                     pub StateID: String,
                     pub Time: String,
                     pub Calibrated: String,
-
-
                     pub Assets: Assets,
                     pub Tags: Vec<Tag>,
                     pub Results: Results
