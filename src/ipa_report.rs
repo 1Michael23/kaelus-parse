@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
-use std::{fs, env, str::FromStr};
+use std::{fs, env};
 
 use crate::raw_ipa_report;
-use chrono::{DateTime, FixedOffset, Local, prelude::*, naive::MIN_DATETIME};
+use chrono::{DateTime, FixedOffset, prelude::*};
 
 fn read_csv_marker_position(path: String) -> f64 {
 
@@ -18,21 +18,52 @@ fn read_csv_marker_position(path: String) -> f64 {
     return marker_data.get(2).unwrap().to_owned().to_owned().parse().unwrap();
 }
 
+pub struct Warning {
+    pub message: String,
+    pub expected: String,
+    pub result: String
+}
+
 impl SweepReport {
 
-    pub fn from_raw_ipa_report(input: raw_ipa_report::Bundle) -> SweepReport {
+    
 
+    pub fn from_raw_ipa_report(input: raw_ipa_report::Bundle) -> Result<(SweepReport, Vec<Warning>), String> {
+
+        //Create Vector for parse warnings
+        let mut warnings: Vec<Warning> = Vec::new();
+
+        //Create Vector for the testing devices
         let mut tmp_devices: Vec<Device> = Vec::new();
 
+            //Loop over devices in the raw report
             for device in input.Devices.Device.clone() {
+
+                let details_vec = device.Details.DeviceDetails;
+                let item;
+                
+                if details_vec.is_empty() {
+                    return Err("Empty device details vector".to_string())
+                }
+                
+                if details_vec.len() != 1{
+                    warnings.push(Warning { 
+                        message: "Unexpected details Vec len".to_string(), 
+                        expected: "1".to_string(), 
+                        result: details_vec.len().to_string() });
+                }
+
+                item = details_vec.get(0).unwrap();
+                
+
                 let tmp_device: Device = Device { 
                     serial_number: (device.SerialNumber), 
                     model: (device.Model), 
-                    ID: (device.Details.DeviceDetails.get(0).unwrap().ID.clone()), 
-                    sw_version: (device.Details.DeviceDetails.get(0).unwrap().SWVersions.clone()), 
-                    calibration_date: (DateTime::parse_from_rfc3339(device.Details.DeviceDetails.get(0).unwrap().CalDate.as_str()).unwrap()), 
-                    signature: (device.Details.DeviceDetails.get(0).unwrap().Signature).clone() 
-                }; 
+                    ID: (item.ID.clone()), 
+                    sw_version: (item.SWVersions.clone()), 
+                    calibration_date: (DateTime::parse_from_rfc3339(item.CalDate.as_str()).expect("Time Parse Error")), 
+                    signature: (item.Signature.clone()) 
+                };
 
                 tmp_devices.push(tmp_device);
             }
@@ -76,8 +107,8 @@ impl SweepReport {
                         unit: test.Results.TestResult.Unit, 
                         p1: test.Results.TestResult.P1.parse().unwrap(), 
                         p2: test.Results.TestResult.P2.parse().unwrap(), 
-                        max: (max.get(0).unwrap().to_string().parse().unwrap(), max.get(1).unwrap().to_string().parse().unwrap()), 
-                        min: (min.get(0).unwrap().to_string().parse().unwrap(), min.get(1).unwrap().to_string().parse().unwrap()), 
+                        max: (max.first().unwrap().to_string().parse().unwrap(), max.get(1).unwrap().to_string().parse().unwrap()), 
+                        min: (min.first().unwrap().to_string().parse().unwrap(), min.get(1).unwrap().to_string().parse().unwrap()), 
                         avg: test.Results.TestResult.Average.parse().unwrap(), 
                         ripple: test.Results.TestResult.Ripple.parse().unwrap(), 
                         pass: test.Results.TestResult.Pass.parse().unwrap(),
@@ -87,7 +118,7 @@ impl SweepReport {
 
                 for tmp_test in &mut tmp_reports {
 
-                    if test.Tags.len() == 0 {
+                    if test.Tags.is_empty() {
                         panic!("No tags found on cable, Check Report.")
                     }
                     if test.Tags.len() > 1 {
@@ -114,7 +145,7 @@ impl SweepReport {
                             panic!("No associated state found.")
                         }
 
-                        if dtf_test == false {
+                        if !dtf_test {
                             tmp_test.rl_state_id = Some(test.StateID.clone());
                             tmp_test.rl_state = Some(RlState::from_raw(associated_state.clone().unwrap()));
                             tmp_test.rl_result = Some(tmp_result.clone());
@@ -127,9 +158,9 @@ impl SweepReport {
                     }
                 }
 
-                if duplicate_tag == false {
+                if !duplicate_tag {
 
-                    if dtf_test == true {
+                    if dtf_test {
                         let tmp_report: Report = Report { 
                             tag: test.Tags.get(0).unwrap().Tag.clone(), 
                             dtf_state_id: Some(test.StateID), 
@@ -161,7 +192,7 @@ impl SweepReport {
 
         let sweep_report: SweepReport = SweepReport { devices: (tmp_devices), reports: (tmp_reports) };
 
-        return sweep_report;
+        Ok((sweep_report, warnings))
     }
 }
 
@@ -195,14 +226,14 @@ pub struct SweepReport {
 
         impl DtfState {
             pub fn from_raw(input: raw_ipa_report::State) -> DtfState {
-                let input_clone = input.Rx_kHz.unwrap().clone();
+                let input_clone = input.Rx_kHz.unwrap();
                 let rx_khz: Vec<&str> = input_clone.split(':').collect();
                 let limit = input.Limits.Limit.get(0).unwrap().clone();
 
                 let result: DtfState = DtfState { 
                     id: input.ID, 
                     test_type: input.TestType, 
-                    rx_khz: (rx_khz.get(0).unwrap().to_string().parse().unwrap(), rx_khz.get(1).unwrap().to_string().parse().unwrap() ), 
+                    rx_khz: (rx_khz.first().unwrap().to_string().parse().unwrap(), rx_khz.get(1).unwrap().to_string().parse().unwrap() ), 
                     points: input.Points.parse().unwrap(), 
                     limit_distance: input.Distance_m.unwrap().parse().unwrap(), 
                     cable_loss_dbm: input.CableLoss_dB_per_m.unwrap().parse().unwrap(), 
@@ -213,7 +244,7 @@ pub struct SweepReport {
                         name: limit.Name, 
                         reference_value: limit.Reference} 
                 };
-                return result
+                result
             }
         }
 
@@ -247,7 +278,7 @@ pub struct SweepReport {
                     } 
                 };
 
-                return result;
+                result
             }
         }
 

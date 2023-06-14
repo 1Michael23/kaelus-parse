@@ -37,17 +37,18 @@ fn main() {
 
     print!(", Parsed:({})", format!("{}ms", start.elapsed().as_millis()).red());
 
-    let formatted_report = ipa_report::SweepReport::from_raw_ipa_report(raw_report.clone());
+    let (formatted_report, warnings) = ipa_report::SweepReport::from_raw_ipa_report(raw_report).unwrap();
 
-    print!(", Processed:({})\n", format!("{}ms", start.elapsed().as_millis()).red());
+    println!(", Processed:({})\n", format!("{}ms", start.elapsed().as_millis()).red());
 
+    for warning in warnings{
+        println!("{} ({}) ({}:{})", "WARN: ".yellow().bold(), warning.message, warning.expected, warning.result)
+    }
     
     match args.verbose{
         true => detailed_summary(args.sort, formatted_report),
         false => summary(args.sort, formatted_report),
     }
-
-    
 
 }
 
@@ -81,7 +82,7 @@ fn detailed_summary(sort: bool, mut input: ipa_report::SweepReport){
                 None => "N/A".red().to_string(),
             },
             match input.dtf_result.clone() {
-                Some(e) => format!("{} at {}{}",round::half_away_from_zero(e.max.1, 2).green().to_string(), round::half_away_from_zero(e.max.0, 2).green().to_string(), "m".green()),
+                Some(e) => format!("{} at {}{}",round::half_away_from_zero(e.max.1, 2).green(), round::half_away_from_zero(e.max.0, 2).green(), "m".green()),
                 None => "N/A".red().to_string(),
             },
             match input.dtf_result.clone() {
@@ -171,6 +172,6 @@ fn remove_non_ascii(input: String) -> String {
 
     let cleaned_string: String = cleaned_data.iter().cloned().collect::<String>();
 
-    return cleaned_string
+    cleaned_string
     
 }
