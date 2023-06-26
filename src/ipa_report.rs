@@ -24,9 +24,12 @@ pub struct Warning {
     pub result: String
 }
 
-impl SweepReport {
+enum TestType {
+    DTF,
+    ReturnLoss,
+}
 
-    
+impl SweepReport {
 
     pub fn from_raw_ipa_report(input: raw_ipa_report::Bundle) -> Result<(SweepReport, Vec<Warning>), String> {
 
@@ -73,7 +76,12 @@ impl SweepReport {
             for test in input.Reports.Report.get(0).unwrap().Items.Test.clone() {
                 
                 let mut duplicate_tag: bool = false;
-                let dtf_test: bool = test.Results.TestResult.Unit == "VSWR";
+               
+                let test_type: TestType = match test.Results.TestResult.Unit.as_str() {
+                    "VSWR" => TestType::DTF,
+                    "dB" => TestType::ReturnLoss,
+                    _ => panic!("Unknown test type"),
+                };
 
                 let mut associated_state: Option<raw_ipa_report::State> = None;
                 let mut associated_csv_path: Option<String> = None;
@@ -95,8 +103,8 @@ impl SweepReport {
                     }
                 }
 
-                if associated_csv_path.is_none() {
-                    panic!("No associated CSV file found.")
+                if associated_csv_path.is_none(){
+                    panic!("No associated CSV file linked in report")
                 }
 
                 let max: Vec<&str> = test.Results.TestResult.Maximum.split(':').collect();
@@ -127,14 +135,7 @@ impl SweepReport {
 
                     if test.Tags.get(0).unwrap().Tag == tmp_test.tag {
                         duplicate_tag = true;
-
-                        //framework for timing data, need to fix sweep tester first, garbage data
-
-                        // let caldate: chrono::DateTime<FixedOffset> = tmp_devices.get(0).unwrap().calibration_date;
-                        // let testdate: Vec<&str> = test.Time.split(' ').collect();
-                        // println!("{} : {}", test.Time, caldate);
-                        // tmp_test.time_finished = Some(chrono::NaiveTime::from_str(testdate.get(1).unwrap()).unwrap() - caldate.time());
-                        
+ 
                         for raw_state in input.States.State.clone() {
                             if raw_state.ID == test.StateID{
                                 associated_state = Some(raw_state);
@@ -145,48 +146,51 @@ impl SweepReport {
                             panic!("No associated state found.")
                         }
 
-                        if !dtf_test {
-                            tmp_test.rl_state_id = Some(test.StateID.clone());
-                            tmp_test.rl_state = Some(RlState::from_raw(associated_state.clone().unwrap()));
-                            tmp_test.rl_result = Some(tmp_result.clone());
-                        }else {
-                            tmp_test.dtf_state_id = Some(test.StateID.clone());
-                            tmp_test.dtf_state = Some(DtfState::from_raw(associated_state.clone().unwrap()));
-                            tmp_test.dtf_result = Some(tmp_result.clone());
-                            tmp_test.dtf_marker = Some(read_csv_marker_position(associated_csv_path.clone().unwrap()))
+                        match test_type {
+                            TestType::DTF => {
+                                tmp_test.dtf_state_id = Some(test.StateID.clone());
+                                tmp_test.dtf_state = Some(DtfState::from_raw(associated_state.clone().unwrap()));
+                                tmp_test.dtf_result = Some(tmp_result.clone());
+                                tmp_test.dtf_marker = Some(read_csv_marker_position(associated_csv_path.clone().unwrap()))
+                            },
+                            TestType::ReturnLoss => {
+                                tmp_test.rl_state_id = Some(test.StateID.clone());
+                                tmp_test.rl_state = Some(RlState::from_raw(associated_state.clone().unwrap()));
+                                tmp_test.rl_result = Some(tmp_result.clone());
+                            },
                         }
                     }
                 }
 
                 if !duplicate_tag {
-
-                    if dtf_test {
-                        let tmp_report: Report = Report { 
-                            tag: test.Tags.get(0).unwrap().Tag.clone(), 
-                            dtf_state_id: Some(test.StateID), 
-                            rl_state_id: None, 
-                            dtf_state: Some(DtfState::from_raw(associated_state.unwrap())), 
-                            rl_state: None, 
-                            dtf_marker: Some(read_csv_marker_position(associated_csv_path.unwrap())),
-                            dtf_result: Some(tmp_result),
-                            rl_result: None
-                            };
-
-                            tmp_reports.push(tmp_report)
-                    }else {
-                        let tmp_report: Report = Report { 
-                            tag: test.Tags.get(0).unwrap().Tag.clone(), 
-                            dtf_state_id: None, 
-                            rl_state_id: Some(test.StateID), 
-                            dtf_state: None, 
-                            rl_state: Some(RlState::from_raw(associated_state.unwrap())), 
-                            dtf_marker: None,
-                            dtf_result: None,
-                            rl_result: Some(tmp_result)
-                        };
-                            
-                            tmp_reports.push(tmp_report)
-                    }     
+                    match test_type {
+                        TestType::DTF => {
+                            let tmp_report: Report = Report { 
+                                tag: test.Tags.get(0).unwrap().Tag.clone(), 
+                                dtf_state_id: Some(test.StateID), 
+                                rl_state_id: None, 
+                                dtf_state: Some(DtfState::from_raw(associated_state.unwrap())), 
+                                rl_state: None, 
+                                dtf_marker: Some(read_csv_marker_position(associated_csv_path.unwrap())),
+                                dtf_result: Some(tmp_result),
+                                rl_result: None
+                                };
+                                tmp_reports.push(tmp_report)
+                        },
+                        TestType::ReturnLoss => {
+                            let tmp_report: Report = Report { 
+                                tag: test.Tags.get(0).unwrap().Tag.clone(), 
+                                dtf_state_id: None, 
+                                rl_state_id: Some(test.StateID), 
+                                dtf_state: None, 
+                                rl_state: Some(RlState::from_raw(associated_state.unwrap())), 
+                                dtf_marker: None,
+                                dtf_result: None,
+                                rl_result: Some(tmp_result)
+                                };
+                                tmp_reports.push(tmp_report)
+                        },
+                    }    
                 }
             }
 
@@ -226,7 +230,7 @@ pub struct SweepReport {
 
         impl DtfState {
             pub fn from_raw(input: raw_ipa_report::State) -> DtfState {
-                let input_clone = input.Rx_kHz.unwrap();
+                let input_clone = input.clone().Rx_kHz.unwrap();
                 let rx_khz: Vec<&str> = input_clone.split(':').collect();
                 let limit = input.Limits.Limit.get(0).unwrap().clone();
 

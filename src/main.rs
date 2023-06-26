@@ -52,6 +52,7 @@ fn main() {
 
 }
 
+
 fn detailed_summary(sort: bool, mut input: ipa_report::SweepReport){
     for i in 0..input.devices.len() {
 

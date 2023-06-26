@@ -18,8 +18,6 @@ pub struct Bundle {
     pub struct Devices {
         pub Device: Vec<Device>,
     }
-
-
         #[derive(Debug, Serialize, Deserialize, Clone)]
         pub struct Device {
             pub SerialNumber: String,
@@ -55,9 +53,7 @@ pub struct Bundle {
             pub VF: Option<String>,
             pub Window: Option<String>,
             pub CableLoss_dB_per_m: Option<String>,
-
             pub Limits: Limits
-
         }
 
             #[derive(Debug, Serialize, Deserialize, Clone)] 
@@ -86,7 +82,6 @@ pub struct Bundle {
             pub PeakPim_dBm: String,
             pub PeakPimPowerSetPoint_dBm: String,
             pub TestPassed: String,
-
             pub Items: Items
         }
 
@@ -104,7 +99,6 @@ pub struct Bundle {
                     pub Assets: Assets,
                     pub Tags: Vec<Tag>,
                     pub Results: Results
-
                 }
 
                     #[derive(Debug, Serialize, Deserialize, Clone)]
