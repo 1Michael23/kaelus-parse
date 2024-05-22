@@ -27,19 +27,29 @@ fn main() {
 
     let args: Arguments = argh::from_env();
 
+    //set a starting time
     let start = time::Instant::now();
-
     print!("\nStart:({})", format!("{}ms", start.elapsed().as_millis()).red());
  
+    //read in raw dara from file
     let data = fs::read_to_string(args.path).unwrap();  
-    
     let raw_report = raw_ipa_report::raw_report_from_str(remove_non_ascii(data)).unwrap();
-
     print!(", Parsed:({})", format!("{}ms", start.elapsed().as_millis()).red());
 
     let (formatted_report, warnings) = ipa_report::SweepReport::from_raw_ipa_report(raw_report).unwrap();
+    print!(", Processed:({}), ", format!("{}ms", start.elapsed().as_millis()).red());
 
-    println!(", Processed:({})\n", format!("{}ms", start.elapsed().as_millis()).red());
+    let mut sum: f64 = 0.0;
+
+    for report in formatted_report.reports.clone(){
+        if report.dtf_marker.is_some(){
+            sum = sum + report.dtf_marker.unwrap();
+        }
+    }
+
+    println!("{}: ({}), {}: ({}m)","Count".green(), formatted_report.reports.len(), "Total Length".green(), round::half_away_from_zero(sum, 2));
+
+   
 
     for warning in warnings{
         println!("{} ({}) ({}:{})", "WARN: ".yellow().bold(), warning.message, warning.expected, warning.result)
@@ -174,5 +184,4 @@ fn remove_non_ascii(input: String) -> String {
     let cleaned_string: String = cleaned_data.iter().cloned().collect::<String>();
 
     cleaned_string
-    
 }

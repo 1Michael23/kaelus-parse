@@ -216,7 +216,7 @@ pub struct SweepReport {
         pub signature: String
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub struct Report {
         pub tag: String,
         pub dtf_state_id: Option<String>,

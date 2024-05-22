@@ -3,9 +3,9 @@
 ## Add parsing warnings to detect bad data.
 
 User Error:
-- too many tags on one cable
-- cables with missing tags
-- multiple cables with identical lengths
+- too many tags on one test ✅
+- cables with missing tags ✅
+- multiple cables with identical lengths 
 - multiple cables with identical VSWR
 - multiple cables with identical return loss
 - (search.rs) data missing from search
